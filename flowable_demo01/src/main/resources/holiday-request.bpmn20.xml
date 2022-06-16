@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:flowable="http://flowable.org/bpmn"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://www.flowable.org/processdef">
+
+    <process id="holidayRequest" name="申请请假" isExecutable="true">
+
+        <startEvent id="startEvent"/>
+        <sequenceFlow sourceRef="startEvent" targetRef="approveTask"/>
+
+        <userTask id="approveTask" name="放假的申请" flowable:candidateGroups="managers"/>
+        <sequenceFlow sourceRef="approveTask" targetRef="decision"/>
+
+        <exclusiveGateway id="decision"/>
+        <sequenceFlow sourceRef="decision" targetRef="externalSystemCall">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[
+          ${approved}
+        ]]>
+            </conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow sourceRef="decision" targetRef="sendRejectionMail">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[
+          ${!approved}
+        ]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <serviceTask id="externalSystemCall" name="在外部系统中输入假期"
+                     flowable:class="org.flowable.CallExternalSystemDelegate"/>
+        <sequenceFlow sourceRef="externalSystemCall" targetRef="holidayApprovedTask"/>
+
+        <userTask id="holidayApprovedTask" name="同意请假" flowable:assignee="${employee}"/>
+        <sequenceFlow sourceRef="holidayApprovedTask" targetRef="approveEnd"/>
+
+        <serviceTask id="sendRejectionMail" name="发送拒绝邮件"
+                     flowable:class="org.flowable.SendRejectionMail"/>
+        <sequenceFlow sourceRef="sendRejectionMail" targetRef="rejectEnd"/>
+
+        <endEvent id="approveEnd"/>
+
+        <endEvent id="rejectEnd"/>
+
+    </process>
+
+</definitions>
